@@ -24,7 +24,16 @@ const addDoctors = async (req, res) => {
     // const imageFile = req.file
 
 
-    console.log( 'img' ,  imageFile )
+    console.log( email,
+      password,
+      speciality,
+      degree,
+      experience,
+      about,
+      fees,
+      address,
+      name,
+      imageFile)
 
     // checking for add data for doctors
     if (
@@ -103,6 +112,7 @@ try{
     const {email , password} = req.body;
     if(email === process.env.ADMIN_EMAIL && password === process.env.ADMIN_PASS){
         const token = jwt.sign(email+password , process.env.JWT_SECRET)
+        console.log('succes login')
         res.json({success: true , token})
 
 
@@ -118,5 +128,19 @@ try{
     res.json({success: false , message: err.message})
   }
 }
+//api  to get all doclist in admin panal 
 
-export { addDoctors  , loginAdmin};
+const allDoctors = async(req ,res )=>{
+
+    try{
+      const doctors = await doctorModel.find({}).select('-password')
+      res.json({success: true , doctors})
+      
+    } catch (err) {
+      console.log(err)
+      res.json({success: false , message: err.message})
+    }
+
+}
+
+export { addDoctors  , loginAdmin , allDoctors};
