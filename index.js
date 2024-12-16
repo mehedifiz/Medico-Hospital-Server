@@ -4,6 +4,8 @@ import dotenv from "dotenv";
 import connectDB from "./config/mongodb.js";
 import connectCloudinary from "./config/cloudinary.js";
 import adminRouter from "./routes/adminRoute.js";
+import doctorRouter from "./routes/doctorRoute.js";
+import userRouter from "./routes/userRoutes.js";
 
 // Load environment variables
 dotenv.config();
@@ -21,8 +23,11 @@ app.use(express.json());
 
 // API endpoint for testing
   app.use('/api/admin' , adminRouter)
-  // /api/admin/add-doctor
 
+
+  app.use('/api/doctor' , doctorRouter)
+  app.use('/api/user' , userRouter)
+ 
 
 
 app.get("/", (req, res) => {
