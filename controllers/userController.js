@@ -9,6 +9,9 @@ const registerUser = async(req , res)=>{
     try {
         const {name ,email ,password} = req.body ;
 
+        console.log({name ,email ,password} )
+
+
         if(!name ,!email ,!password){
                 return res.json({success : false , message :"Missing Details"})
         }
@@ -56,13 +59,13 @@ const loginUser = async(req ,res)=>{
         const user = await userModel.findOne({email})
 
         if (!user) {
-        res.json({success: false , message: 'User does not exist'})
+         return   res.json({success: false , message: 'User does not exist'})
             
         }
 
         const isMatch = await bcrypt.compare(password , user.password)
         if(isMatch){
-            const token = jwt.sign({id:user._i} ,process.env.JWT_SECRET)
+            const token = jwt.sign({id:user._id} ,process.env.JWT_SECRET)
             res.json({success:true ,token})
         } else{
             res.json({success: false , message:"Imvalid credentuals"})
@@ -76,4 +79,26 @@ const loginUser = async(req ,res)=>{
     }
 }
 
-export {registerUser ,loginUser}
+//  api tp get user data 
+
+const getProfile =async(req , res)=>{
+    try {
+
+        const {userId}=req.body;
+
+        console.log('userId' , userId)
+        const userData = await userModel.findById(userId).select('-password')
+        console.log(userData)
+
+        res.json({success:true , userData})
+        
+    } catch (error) {
+        console.log(error)
+        res.json({success: false , message: error.message})
+        
+    }
+}
+
+
+
+export {registerUser ,loginUser , getProfile}
