@@ -122,9 +122,9 @@ const updateProfile = async (req, res) => {
 const bookAppointment = async (req, res) => {
   try {
     const { userId, slotDate, slotTime, docId } = req.body;
-    console.log({ userId, slotDate, slotTime, docId })
 
     const docData = await doctorModel.findById(docId).select("-password");
+    console.log('docData' , docData)
 
     if (!docData.available) {
       return res.json({ success: false, message: "Doctor not abailable " });
@@ -180,4 +180,22 @@ const bookAppointment = async (req, res) => {
   }
 };
 
-export { registerUser, loginUser, getProfile, updateProfile , bookAppointment };
+// api to user appoinments
+
+const listAppointments = async(req , res)=>{
+
+    try {
+
+      const {userId} = req.body;
+      const appoinments = await appointmentModel.find({userId})
+      console.log('userId', userId , appoinments)
+      
+      res.json({success : true , appoinments})
+      
+    } catch (error) {
+      // console.log(error);
+      // res.json({ success: false, message: error.message });
+    }
+}
+
+export { registerUser, loginUser, getProfile, updateProfile , bookAppointment , listAppointments};
