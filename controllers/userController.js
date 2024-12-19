@@ -201,27 +201,27 @@ const listAppointments = async(req , res)=>{
 
 const cencelAppoinments = async (req, res) => {
   try {
-    const { userId, appoinmentId } = req.body;
+    const { userId, appointmentId } = req.body;
+    console.log({ userId, appointmentId });
 
-    // Retrieve appointment data
-    const appoinmentData = await appointmentModel.findById(appoinmentId);
+    // Fetch appointment data
+    const appointmentData = await appointmentModel.findById(appointmentId);
 
-    if (!appoinmentData) {
+    if (!appointmentData) {
       return res.json({ success: false, message: "Appointment not found" });
     }
 
-    // Verify appointment belongs to the user
-    if (appoinmentData.userId.toString() !== userId.toString()) {
+    // Verify appointment user
+    if (appointmentData.userId.toString() !== userId) {
       return res.json({ success: false, message: "Unauthorized action" });
     }
 
-    // Mark the appointment as cancelled
-    await appointmentModel.findByIdAndUpdate(appoinmentId, { cancelled: true });
+    // Update appointment to canceled
+    await appointmentModel.findByIdAndUpdate(appointmentId, { cancelled: true });
 
-    // Release doctor slot
-    const { docId, slotDate, slotTime } = appoinmentData;
-
-    console.log('Releasing slot:', { docId, slotDate, slotTime });
+    // Release doctor's slot
+    const { docId, slotDate, slotTime } = appointmentData;
+    console.log("docId, slotDate, slotTime", { docId, slotDate, slotTime });
 
     const doctorData = await doctorModel.findById(docId);
 
@@ -229,21 +229,17 @@ const cencelAppoinments = async (req, res) => {
       return res.json({ success: false, message: "Doctor not found" });
     }
 
-    let slots_booked = doctorData.slots_booked;
+    let slotsBooked = doctorData.slots_booked;
 
-    // Ensure slots_booked and slotDate exist before accessing
-    if (slots_booked[slotDate]) {
-      slots_booked[slotDate] = slots_booked[slotDate].filter((e) => e !== slotTime);
-
-      // Update doctor's slots
-      await doctorModel.findByIdAndUpdate(docId, { slots_booked });
-    } else {
-      console.log("Slot date not found in doctor's slots_booked");
+    if (slotsBooked[slotDate]) {
+      slotsBooked[slotDate] = slotsBooked[slotDate].filter((e) => e !== slotTime);
     }
 
-    res.json({ success: true, message: "Appointment cancelled successfully" });
+    await doctorModel.findByIdAndUpdate(docId, { slots_booked: slotsBooked });
+
+    res.json({ success: true, message: "Appointment Cancelled" });
   } catch (error) {
-    console.error(error);
+    console.log(error);
     res.json({ success: false, message: error.message });
   }
 };
