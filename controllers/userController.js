@@ -4,7 +4,6 @@ import userModel from "../models/userModel.js";
 import jwt from "jsonwebtoken";
 import doctorModel from "../models/docorModel.js";
 import appointmentModel from "../models/appoinmentModel.js";
-
 //  to to register user
 
 const registerUser = async (req, res) => {
@@ -198,4 +197,56 @@ const listAppointments = async(req , res)=>{
     }
 }
 
-export { registerUser, loginUser, getProfile, updateProfile , bookAppointment , listAppointments};
+// api to user cencel appoinments
+
+const cencelAppoinments = async (req, res) => {
+  try {
+    const { userId, appoinmentId } = req.body;
+
+    // Retrieve appointment data
+    const appoinmentData = await appointmentModel.findById(appoinmentId);
+
+    if (!appoinmentData) {
+      return res.json({ success: false, message: "Appointment not found" });
+    }
+
+    // Verify appointment belongs to the user
+    if (appoinmentData.userId.toString() !== userId.toString()) {
+      return res.json({ success: false, message: "Unauthorized action" });
+    }
+
+    // Mark the appointment as cancelled
+    await appointmentModel.findByIdAndUpdate(appoinmentId, { cancelled: true });
+
+    // Release doctor slot
+    const { docId, slotDate, slotTime } = appoinmentData;
+
+    console.log('Releasing slot:', { docId, slotDate, slotTime });
+
+    const doctorData = await doctorModel.findById(docId);
+
+    if (!doctorData) {
+      return res.json({ success: false, message: "Doctor not found" });
+    }
+
+    let slots_booked = doctorData.slots_booked;
+
+    // Ensure slots_booked and slotDate exist before accessing
+    if (slots_booked[slotDate]) {
+      slots_booked[slotDate] = slots_booked[slotDate].filter((e) => e !== slotTime);
+
+      // Update doctor's slots
+      await doctorModel.findByIdAndUpdate(docId, { slots_booked });
+    } else {
+      console.log("Slot date not found in doctor's slots_booked");
+    }
+
+    res.json({ success: true, message: "Appointment cancelled successfully" });
+  } catch (error) {
+    console.error(error);
+    res.json({ success: false, message: error.message });
+  }
+};
+
+
+export { registerUser, loginUser, getProfile, updateProfile , bookAppointment , listAppointments , cencelAppoinments};
