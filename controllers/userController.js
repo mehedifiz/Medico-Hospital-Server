@@ -4,6 +4,12 @@ import userModel from "../models/userModel.js";
 import jwt from "jsonwebtoken";
 import doctorModel from "../models/docorModel.js";
 import appointmentModel from "../models/appoinmentModel.js";
+import stripe from "stripe";
+
+const stripeInstance = new stripe(
+  "sk_test_51QC1uEI8sInWbbt4zorUkkuh7Wu4SLvPwybVeOVGpCvgpolo8cEObKDTLZzDmVoSycncMCJDdrq0M3JPoHQip6Yv00P99GLvMm"
+);
+
 //  to to register user
 
 const registerUser = async (req, res) => {
@@ -78,7 +84,7 @@ const getProfile = async (req, res) => {
 
     console.log("userId", userId);
     const userData = await userModel.findById(userId).select("-password");
-    console.log(userData);
+    // console.log(userData);
 
     res.json({ success: true, userData });
   } catch (error) {
@@ -93,7 +99,7 @@ const updateProfile = async (req, res) => {
   try {
     const { userId, name, phone, address, dob, gender, image } = req.body;
 
-    console.log({ name, phone, address, dob, gender, image }); // Debugging to confirm address structure
+    // console.log({ name, phone, address, dob, gender, image }); // Debugging to confirm address structure
 
     if (!name || !phone || !address || !dob || !gender || !image) {
       return res.json({ success: false, message: "Data Missing" });
@@ -123,27 +129,26 @@ const bookAppointment = async (req, res) => {
     const { userId, slotDate, slotTime, docId } = req.body;
 
     const docData = await doctorModel.findById(docId).select("-password");
-    console.log('docData' , docData)
+    console.log("docData", docData);
 
     if (!docData.available) {
       return res.json({ success: false, message: "Doctor not abailable " });
     }
 
     let slots_booked = docData.slots_booked;
-    console.log('slots_booked ' ,  slots_booked) //{}
+    console.log("slots_booked ", slots_booked); //{}
     // checking for slots availablity
 
     if (slots_booked[slotDate]) {
       if (slots_booked[slotDate].includes(slotTime)) {
         return res.json({ success: false, message: "Slots not available" });
-
       } else {
         slots_booked[slotDate].push(slotTime);
       }
     } else {
       slots_booked[slotDate] = [];
 
-      console.log('slots_booked[slotDate] ' , slots_booked)
+      console.log("slots_booked[slotDate] ", slots_booked);
 
       slots_booked[slotDate].push(slotTime);
     }
@@ -161,18 +166,15 @@ const bookAppointment = async (req, res) => {
       slotTime,
       slotDate,
       date: Date.now(),
-
     };
-    console.log('appoinments data' , appointmentData)
+    console.log("appoinments data", appointmentData);
 
-    const newAppoiment = new appointmentModel(appointmentData)
-    await newAppoiment.save()
+    const newAppoiment = new appointmentModel(appointmentData);
+    await newAppoiment.save();
 
     // save new slot data in doctors data
-    await doctorModel.findByIdAndUpdate(docId , {slots_booked})
-    res.json({success:true , message:'Appointment Booked'})
-
-
+    await doctorModel.findByIdAndUpdate(docId, { slots_booked });
+    res.json({ success: true, message: "Appointment Booked" });
   } catch (error) {
     console.log(error);
     res.json({ success: false, message: error.message });
@@ -181,28 +183,25 @@ const bookAppointment = async (req, res) => {
 
 // api to user appoinments
 
-const listAppointments = async(req , res)=>{
+const listAppointments = async (req, res) => {
+  try {
+    const { userId } = req.body;
+    const appoinments = await appointmentModel.find( {userId} );
+    console.log('thisis ueif ', userId , appoinments)
 
-    try {
-
-      const {userId} = req.body;
-      const appoinments = await appointmentModel.find({userId})
-      console.log('userId', userId , appoinments)
-      
-      res.json({success : true , appoinments})
-      
-    } catch (error) {
-      // console.log(error);
-      // res.json({ success: false, message: error.message });
-    }
-}
+    res.json({ success: true, appoinments });
+  } catch (error) {
+    console.log(error);
+    res.json({ success: false, message: error.message });
+  }
+};
 
 // api to user cencel appoinments
 
 const cencelAppoinments = async (req, res) => {
   try {
     const { userId, appointmentId } = req.body;
-    console.log({ userId, appointmentId });
+    // console.log({ userId, appointmentId });
 
     // Fetch appointment data
     const appointmentData = await appointmentModel.findById(appointmentId);
@@ -217,11 +216,13 @@ const cencelAppoinments = async (req, res) => {
     }
 
     // Update appointment to canceled
-    await appointmentModel.findByIdAndUpdate(appointmentId, { cancelled: true });
+    await appointmentModel.findByIdAndUpdate(appointmentId, {
+      cancelled: true,
+    });
 
     // Release doctor's slot
     const { docId, slotDate, slotTime } = appointmentData;
-    console.log("docId, slotDate, slotTime", { docId, slotDate, slotTime });
+    // console.log("docId, slotDate, slotTime", { docId, slotDate, slotTime });
 
     const doctorData = await doctorModel.findById(docId);
 
@@ -232,7 +233,9 @@ const cencelAppoinments = async (req, res) => {
     let slotsBooked = doctorData.slots_booked;
 
     if (slotsBooked[slotDate]) {
-      slotsBooked[slotDate] = slotsBooked[slotDate].filter((e) => e !== slotTime);
+      slotsBooked[slotDate] = slotsBooked[slotDate].filter(
+        (e) => e !== slotTime
+      );
     }
 
     await doctorModel.findByIdAndUpdate(docId, { slots_booked: slotsBooked });
@@ -243,6 +246,85 @@ const cencelAppoinments = async (req, res) => {
     res.json({ success: false, message: error.message });
   }
 };
+const getDoc = async (req, res) => {
+  try {
+    const { docId } = req.query; // Extract docId from query parameters
+    console.log("Received docId:", docId);
+
+    if (!docId) {
+      return res.status(400).json({ success: false, message: "docId is required" });
+    }
+
+    const doctor = await doctorModel.findById(docId); // Find the doctor by ID
+    if (!doctor) {
+      return res.status(404).json({ success: false, message: "Doctor not found" });
+    }
+
+    console.log("Fetched doctor:", doctor);
+    res.json({ success: true, doctor });
+  } catch (error) {
+    console.error("Error in getDoc:", error);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+// api to make paymet
+const paymentStripe = async (req, res) => {
+  try {
+    const { price } = req.body;
+
+    const amount = parseInt(price * 100);
+
+    console.log("Amount:", amount);
+
+    const paymentIntent = await stripeInstance.paymentIntents.create({
+      amount: amount,
+      currency: "usd",
+      payment_method_types: ["card"],
+    });
+
+    res.send({
+      clientSecret: paymentIntent.client_secret,
+    });
+  } catch (error) {
+    console.error("Stripe Error:", error);
+    res.json({ success: false, message: error.message });
+  }
+};
 
 
-export { registerUser, loginUser, getProfile, updateProfile , bookAppointment , listAppointments , cencelAppoinments};
+
+
+const verifyStripe = async (req, res) => {
+  try {
+    const { appoinmentId, success } = req.body;
+    console.log( { appoinmentId, success } )
+    const appointmentId = appoinmentId;
+
+    if (success === "succeeded") {
+      await appointmentModel.findByIdAndUpdate(appointmentId, {
+        payment: true,
+      });
+      console.log('update payment status ')
+      return res.json({ success: true, message: "Payment Successful" });
+    }
+
+    res.json({ success: false, message: "Payment Failed" });
+  } catch (error) {
+    console.log(error);
+    res.json({ success: false, message: error.message });
+  }
+};
+
+export {
+  registerUser,
+  loginUser,
+  getProfile,
+  updateProfile,
+  bookAppointment,
+  listAppointments,
+  cencelAppoinments,
+  paymentStripe,
+  verifyStripe,
+  getDoc,
+};
