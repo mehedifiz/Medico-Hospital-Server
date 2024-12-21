@@ -1,14 +1,16 @@
 import validator from "validator";
 import bcrypt from "bcrypt";
 import userModel from "../models/userModel.js";
+import dotenv from "dotenv";
+dotenv.config();
+
 import jwt from "jsonwebtoken";
 import doctorModel from "../models/docorModel.js";
 import appointmentModel from "../models/appoinmentModel.js";
 import stripe from "stripe";
 
-const stripeInstance = new stripe(
-  "sk_test_51QC1uEI8sInWbbt4zorUkkuh7Wu4SLvPwybVeOVGpCvgpolo8cEObKDTLZzDmVoSycncMCJDdrq0M3JPoHQip6Yv00P99GLvMm"
-);
+const stripeInstance = new stripe(process.env.STRIPE_SECRET_KEY);
+// console.log(process.env.STRIPE_SECRET_KEY)
 
 //  to to register user
 

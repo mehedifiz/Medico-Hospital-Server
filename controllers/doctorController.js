@@ -31,8 +31,8 @@ const doctorList = async(req , res )=>{
         res.json({success:true , doctors})
         
     } catch (error) {
-        console.log(err)
-        res.json({success: false , message: err.message})
+        console.log(error)
+        res.json({success: false , message: error.message})
         
     }
 }
