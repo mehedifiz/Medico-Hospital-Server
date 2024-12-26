@@ -75,8 +75,7 @@ const getDocorAppoinments = async (req, res) => {
 const appoinmentComplete = async (req, res) => {
   try {
     const { docId, appointmentId } = req.body;
-    console.log({ docId, appointmentId } )
-
+    console.log({ docId, appointmentId });
 
     const appointmentData = await appointmentModel.findById(appointmentId);
 
@@ -94,11 +93,10 @@ const appoinmentComplete = async (req, res) => {
   }
 };
 
-
 const AppointmentCancel = async (req, res) => {
   try {
     const { docId, appointmentId } = req.body;
-    console.log({ docId, appointmentId } )
+    console.log({ docId, appointmentId });
 
     const appointmentData = await appointmentModel.findById(appointmentId);
 
@@ -116,46 +114,77 @@ const AppointmentCancel = async (req, res) => {
   }
 };
 
-//api to doc dash 
+//api to doc dash
 
-const doctorDash =async(req ,res)=>{
-  try{
-    const {docId} = req.body;
+const doctorDash = async (req, res) => {
+  try {
+    const { docId } = req.body;
 
-    const appointments = await appointmentModel.find({docId})
+    const appointments = await appointmentModel.find({ docId });
 
-    let earnings =0;
+    let earnings = 0;
 
-    appointments.map((item)=>{
-      console.log(item)
+    appointments.map((item) => {
+      console.log(item);
 
-      if(item.isCompleted ||  item.payment){
-        earnings += item. amount
-        
+      if (item.isCompleted || item.payment) {
+        earnings += item.amount;
       }
-    })
+    });
 
-    let patients =[]
-    appointments.map((item)=>{
-
-      if(!patients.includes(item.userId)){
-        patients.push(item.userId)
+    let patients = [];
+    appointments.map((item) => {
+      if (!patients.includes(item.userId)) {
+        patients.push(item.userId);
       }
-
-    })
+    });
 
     const dashData = {
       earnings,
-      appointments:appointments.length,
-      patients:patients.length,
-      latestApp: appointments.reverse().slice(0 , 5)
-    }
+      appointments: appointments.length,
+      patients: patients.length,
+      latestApp: appointments.reverse().slice(0, 5),
+    };
     // console.log('dashData ' , dashData.earnings)
-    res.json({success:true , dashData})
-  }
-  catch (error) {
+    res.json({ success: true, dashData });
+  } catch (error) {
     console.log(error);
   }
-}
+};
 
-export { changeAvailablity, doctorList, docLogin, getDocorAppoinments ,doctorDash, appoinmentComplete , AppointmentCancel};
+// api to get doc profile
+
+const doctorProfile = async (req, res) => {
+  try {
+    const { docId } = req.body;
+
+    const profileData = await doctorModel.findById(docId).select("-password");
+    res.json({ success: true, profileData });
+  } catch (error) {
+    console.log(error);
+  }
+};
+
+const updateProfile = async (req, res) => {
+  try {
+    const { docId, fees, address, available } = req.body;
+
+    await doctorModel.findByIdAndUpdate(docId, { fees, address, available });
+
+    res.json({ success: true, message: "Profile Update Successfully" });
+  } catch (error) {
+    console.log(error);
+  }
+};
+
+export {
+  changeAvailablity,
+  doctorList,
+  docLogin,
+  getDocorAppoinments,
+  doctorDash,
+  appoinmentComplete,
+  AppointmentCancel,
+  doctorProfile,
+  updateProfile,
+};
